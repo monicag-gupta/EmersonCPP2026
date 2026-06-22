@@ -239,3 +239,26 @@ int main()
 
 
 
+
+Build the Project
+
+Run without Debugging : the Project Server2Client
+Run without Debugging : The Project Client4Server
+
+
+Check the Output:
+
+Server:
+Server Waiting on Port 5000...
+Client Connected
+Message From Client: Hello Server
+
+
+Client:
+Connected To Server
+Server Says: Hello Client
+
+
+
+
+
