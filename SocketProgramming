@@ -122,6 +122,118 @@ int main()
 
 
 
+Build the Project
+
+Add new Project in same Solution
+
+Client4Server
+
+
+
+Client4Server.cpp:
+
+#include <iostream>
+#include <cstring>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+using namespace std;
+
+int main()
+{
+    WSADATA ws;
+
+    // Initialize Winsock
+    if (WSAStartup(MAKEWORD(2, 2), &ws) != 0)
+    {
+        cout << "WSAStartup Failed" << endl;
+        return 1;
+    }
+
+    // Create TCP Socket
+    SOCKET clientSocket;
+
+    clientSocket = socket(
+        AF_INET,
+        SOCK_STREAM,
+        IPPROTO_TCP);
+
+    if (clientSocket == INVALID_SOCKET)
+    {
+        cout << "Socket Creation Failed" << endl;
+
+        WSACleanup();
+        return 1;
+    }
+
+    // Server Information: prepares the server address structure before calling bind().
+    sockaddr_in serverAddr;
+
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(5000);  //htons(5000) means:Host To Network Short. It converts the port number into the format required by the network.
+
+    // localhost = 127.0.0.1
+    //This converts an IP address written as a string into a format that the socket API can use.
+    InetPton(   //Presentation To Network, Human-readable IP -> Network binary format
+        AF_INET,   //IPv4 Address
+        TEXT("127.0.0.1"),  //The IP address as a string.
+        &serverAddr.sin_addr); //Store the converted binary IP address here.Before: sin_addr = Empty After : sin_addr = Binary form of 127.0.0.1
+    //Old method:serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    // Connect to Server
+    //This function is used by the client to establish a connection with the server.
+    //connect(SOCKET s, const sockaddr * name, int namelen);
+    if (connect(
+        clientSocket,            //This is the socket that wants to connect to the server.
+        (sockaddr*)&serverAddr,  //sockaddr_in serverAddr; is converted to sockaddr* for connect()
+        sizeof(serverAddr))      //Tells Windows the size of the address structure. typically: 16 bytes
+        == SOCKET_ERROR)
+    {
+        cout << "Connection Failed" << endl;
+        cout << "Error Code : "
+            << WSAGetLastError()
+            << endl;
+
+        closesocket(clientSocket);
+        WSACleanup();
+
+        return 1;
+    }
+
+    cout << "Connected To Server" << endl;
+
+    // Send Message
+    const char* msg = "Hello Server";
+
+    send(
+        clientSocket,
+        msg,
+        (int)strlen(msg),
+        0);
+
+    // Receive Reply
+    char buffer[1024] = {};
+
+    recv(
+        clientSocket,
+        buffer,
+        sizeof(buffer),
+        0);
+
+    cout << "Server Says: "
+        << buffer
+        << endl;
+
+    // Cleanup
+    closesocket(clientSocket);
+
+    WSACleanup();
+
+    return 0;
+}
+
 
 
 
