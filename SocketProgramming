@@ -1,0 +1,129 @@
+Server-client solution in VS 2026:
+
+Create a new Console Project : Server2Client
+Replace the main code with server code.
+Build the project
+Create a new project in the same solution: Client4Server
+Replace the main code with client code.
+Build the project
+Run without debugging (ctrl+F5) the Server2Client project.
+Run without debugging (ctrl+F5) the Client4Server project.
+Check the output in both the running windows.
+
+
+
+Server2Client.cpp
+
+#include <iostream>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")  //To link the Windows Sockets library automatically.
+
+using namespace std;
+
+int main()
+{
+    WSADATA ws;   //WSADATA is a structure used to store information about the Winsock library.
+
+    //WSAStartup(MAKEWORD(2, 2), &ws); //This function initializes the Winsock library before any socket programming functions can be used.
+    //WSAStartup(version, &WSADATA); MAKEWORD(low, high) Means: Request Winsock Version. MAKEWORD(2,2) creates: Version 2.2
+    //This is the most commonly used Winsock version.
+
+    //It initializes the Winsock library and requests Winsock version 2.2. The information about the initialized Winsock implementation is stored in the WSADATA structure ws.
+
+    if (WSAStartup(MAKEWORD(2, 2), &ws) != 0) //Winsock must be initialized before any socket functions can be used.
+    {
+        cout << "WSAStartup Failed";
+        return 1;
+    }
+
+    SOCKET serverSocket;
+
+    //Create an IPv4 TCP Socket : 
+    serverSocket = socket(AF_INET,  //Address Family Internet (IPv4). Use IPv4 addresses such as : 127.0.0.1, 192.168.1.10, 8.8.8.8
+        SOCK_STREAM,     //Stream-Oriented Communication, corresponds to : TCP(Transmission Control Protocol)
+        IPPROTO_TCP);   //Use TCP Protocol. This explicitly tells Windows :  Create a TCP socket.
+
+    if (serverSocket == INVALID_SOCKET)
+    {
+        cout << "Socket Creation Failed";
+        return 1;
+    }
+
+    sockaddr_in serverAddr; //Creates a structure that stores: IP Address, Port Number, Address Family(IPv4 / IPv6)
+
+    serverAddr.sin_family = AF_INET;  //Use IPv4 Addressing. Without this, Windows would not know whether to use IPv4 or IPv6.
+    serverAddr.sin_port = htons(5000);  // Server listens on Port 5000. htons means: Host To Network Short
+    serverAddr.sin_addr.s_addr = INADDR_ANY; // Accept connections on ALL network interfaces. Equivalent to : 0.0.0.0
+
+    if (bind(serverSocket,
+        (sockaddr*)&serverAddr,
+        sizeof(serverAddr))
+        == SOCKET_ERROR)
+    {
+        cout << "Bind Failed";
+        return 1;
+    }
+
+    listen(serverSocket, 5); // socket → The server socket. backlog(5) → Maximum number of connection requests that can wait in the queue.
+
+    cout << "Server Waiting on Port 5000..." << endl;
+
+    SOCKET clientSocket;  //serverSocket = Wait for Clients; clientSocket = Talk to Client
+
+    //SOCKET accept( SOCKET s,  sockaddr* addr,  int* addrlen );
+
+    //It waits for an incoming client connection and creates a new socket (clientSocket) for communicating with that client.
+    //The original serverSocket continues listening for future connections.
+    clientSocket =
+        accept(serverSocket,  //Wait for a client to connect. When a client connects, create a new socket for communicating with that client
+            NULL, //this parameter stores the client's IP address. But since you're not interested in it:NULL
+            NULL); //Normally stores the size of the client address structure. Again, you're ignoring it: NULL
+
+    //After accept() you have two sockets.
+    // Server Socket: serverSocket. Used only for: Listening, Accepting new clients
+    // Client Socket: clientSocket. Used for: send(), recv() with that specific client.
+
+    cout << "Client Connected" << endl;
+
+    char buffer[1024] = {};
+    //This function is used to receive data from a connected socket. Read incoming data from the socket and place it into the buffer.
+    //recv(socket, buffer, length, flags);
+
+    recv(clientSocket, //Receive data from this connected client.
+        buffer,        //Store the received message here.
+        sizeof(buffer), //Maximum number of bytes to receive.
+        0);             //Flag: Default receive operation
+
+    cout << "Message From Client: "
+        << buffer
+        << endl;
+
+    const char* reply =
+        "Hello Client";
+
+    //send() is used to send data through a connected socket.
+    //send(socket, buffer, length, flags);
+
+    send(clientSocket, //The connected socket through which data will be sent.
+        reply,          //The message to send.
+        strlen(reply),  //Calculates the length of the string. (The null character \0 is NOT counted.)
+        0);             //Flag : Default send operation
+
+    closesocket(clientSocket); //Closes the connection with the connected client.
+    closesocket(serverSocket);  //Stops the server from listening for new client connections and releases the server socket.
+
+    WSACleanup(); //Releases Winsock resources allocated by:  WSAStartup(MAKEWORD(2, 2), &ws);
+    // Think of it as : WSAStartup() -> Initialize Winsock -> WSACleanup() -> Shutdown Winsock
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
